@@ -15,10 +15,10 @@ AppSettings settings = config.GetRequiredSection("AppSettings").Get<AppSettings>
 
 // Initialize the client credential auth provider
 var scopes = new[] { "https://graph.microsoft.com/.default" };
-var clientSecretCredential = new ClientSecretCredential(settings.TenantId, settings.AppId, settings.ClientSecret);
+var clientSecretCredential = new ClientSecretCredential(settings.TenantName, settings.AppId, settings.ClientSecret);
 var graphClient = new GraphServiceClient(clientSecretCredential, scopes);
 
-await UserService.GetUserById(graphClient);
+await UserService.CreateTestUsers(graphClient, settings);
 
 // See https://aka.ms/new-console-template for more information
 Console.WriteLine("Hello, World!");
