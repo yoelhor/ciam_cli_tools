@@ -8,14 +8,19 @@ namespace ciam_cli_tools.Services
     {
         const string TEST_USER_PREFIX = "CIAM_";
         const string TEST_USER_SUFFIX = "test.com";
+        const int BATCH_SIZE = 20;
 
         public static async Task CreateTestUsers(GraphServiceClient graphClient, AppSettings appSettings)
         {
 
             Console.WriteLine("Starting create test users operation...");
 
+            List<User> users = new List<User>();
 
-            for (int i = 1; i < 5; i++)
+            // The batch object
+            var batchRequestContent = new BatchRequestContent();
+
+            for (int i = 1; i < 200; i++)
             {
                 // 1,000,000
                 string ID = TEST_USER_PREFIX + i.ToString().PadLeft(7, '0');
@@ -48,13 +53,34 @@ namespace ciam_cli_tools.Services
                         PasswordPolicies = "DisablePasswordExpiration,DisableStrongPassword"
                     };
 
+                    users.Add(user);
 
-                    // Create the user account in the directory
-                    User user1 = await graphClient.Users
-                                    .Request()
-                                    .AddAsync(user);
 
-                    Console.WriteLine($"User '{user.DisplayName}' successfully created.");
+                    // POST requests are handled a bit differently
+                    // The SDK request builders generate GET requests, so
+                    // you must get the HttpRequestMessage and convert to a POST
+                    var jsonEvent = graphClient.HttpProvider.Serializer.SerializeAsJsonContent(user);
+
+                    var addUserRequest = graphClient.Users.Request().GetHttpRequestMessage();
+                    addUserRequest.Method = HttpMethod.Post;
+                    addUserRequest.Content = jsonEvent;
+
+                    // Add the event to the batch operations
+                    batchRequestContent.AddBatchRequestStep(addUserRequest);
+
+
+                    if (i % BATCH_SIZE == 0)
+                    {
+                        Console.WriteLine(i);
+
+                        // Run sent the batch requests
+                        var returnedResponse = await graphClient.Batch.Request().PostAsync(batchRequestContent);
+
+                        // Empty the batch collection
+                        batchRequestContent= new BatchRequestContent();
+                    }
+
+                    // Console.WriteLine($"User '{user.DisplayName}' successfully created.");
                 }
                 catch (Exception ex)
                 {
