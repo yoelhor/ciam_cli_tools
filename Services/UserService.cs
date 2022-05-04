@@ -14,6 +14,7 @@ namespace ciam_cli_tools.Services
         {
 
             Console.WriteLine("Starting create test users operation...");
+            DateTime startTime = DateTime.Now;
 
             List<User> users = new List<User>();
 
@@ -30,6 +31,7 @@ namespace ciam_cli_tools.Services
                     var user = new User
                     {
                         DisplayName = ID,
+                        JobTitle = ID.Substring(ID.Length - 1),
                         Identities = new List<ObjectIdentity>()
                     {
                         new ObjectIdentity
@@ -69,9 +71,10 @@ namespace ciam_cli_tools.Services
                     batchRequestContent.AddBatchRequestStep(addUserRequest);
 
 
-                    if (i % BATCH_SIZE == 0)
+                    if (batchRequestContent.BatchRequestSteps.Count >= BATCH_SIZE)
                     {
-                        Console.WriteLine($"{DateTime.Now.ToLongDateString()}, {DateTime.Now.ToLongTimeString()} users: {i}");
+                        var d = DateTime.Now - startTime;
+                        Console.WriteLine($"{string.Format("{0},{1}:{2}:{3}", d.Days, d.Hours, d.Minutes, d.Seconds)} users: {i}");
 
                         // Run sent the batch requests
                         var returnedResponse = await graphClient.Batch.Request().PostAsync(batchRequestContent);
@@ -94,6 +97,7 @@ namespace ciam_cli_tools.Services
         public static async Task CleanUpTestUsers(GraphServiceClient graphClient)
         {
             Console.WriteLine("Delete all test users from the directory...");
+            DateTime startTime = DateTime.Now;
 
             // The batch objects
             var batchRequestContent = new BatchRequestContent();
@@ -123,7 +127,7 @@ namespace ciam_cli_tools.Services
                             // Delete only test users
                             if (!user.DisplayName.StartsWith(TEST_USER_PREFIX))
                                 return true;
-                            
+
                             // Number of delete users
                             iUsers += 1;
 
@@ -140,9 +144,10 @@ namespace ciam_cli_tools.Services
                             batchRequestContent.AddBatchRequestStep(requestStep);
 
                             // On the last item of the users' collection run the batch command
-                            if (currentBatchStep % BATCH_SIZE == 0)
+                            if (batchRequestContent.BatchRequestSteps.Count >= BATCH_SIZE)
                             {
-                                Console.WriteLine($"{DateTime.Now.ToLongDateString()}, {DateTime.Now.ToLongTimeString()} users: {iUsers}");
+                                var d = DateTime.Now - startTime;
+                                Console.WriteLine($"{string.Format("{0},{1}:{2}:{3}", d.Days, d.Hours, d.Minutes, d.Seconds)} users: {iUsers}");
                                 graphClient.Batch.Request().PostAsync(batchRequestContent).GetAwaiter().GetResult();
 
                                 // Empty the batch collection
