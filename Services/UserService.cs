@@ -10,7 +10,7 @@ namespace ciam_cli_tools.Services
         const string TEST_USER_SUFFIX = "test.com";
         const int BATCH_SIZE = 20;
 
-        public static async Task CreateTestUsers(GraphServiceClient graphClient, AppSettings appSettings)
+        public static async Task CreateTestUsers(GraphServiceClient graphClient, AppSettings appSettings, int from = 1, int to = 1000)
         {
 
             Console.WriteLine("Starting create test users operation...");
@@ -20,7 +20,7 @@ namespace ciam_cli_tools.Services
             // The batch object
             var batchRequestContent = new BatchRequestContent();
 
-            for (int i = 1; i < 200; i++)
+            for (int i = from; i < to; i++)
             {
                 // 1,000,000
                 string ID = TEST_USER_PREFIX + i.ToString().PadLeft(7, '0');
@@ -71,13 +71,13 @@ namespace ciam_cli_tools.Services
 
                     if (i % BATCH_SIZE == 0)
                     {
-                        Console.WriteLine(i);
+                        Console.WriteLine($"{DateTime.Now.ToLongDateString()}, {DateTime.Now.ToLongTimeString()} users: {i}");
 
                         // Run sent the batch requests
                         var returnedResponse = await graphClient.Batch.Request().PostAsync(batchRequestContent);
 
                         // Empty the batch collection
-                        batchRequestContent= new BatchRequestContent();
+                        batchRequestContent = new BatchRequestContent();
                     }
 
                     // Console.WriteLine($"User '{user.DisplayName}' successfully created.");
@@ -90,6 +90,96 @@ namespace ciam_cli_tools.Services
                 }
             }
         }
+
+        public static async Task CleanUpTestUsers(GraphServiceClient graphClient)
+        {
+            Console.WriteLine("Delete all test users from the directory...");
+
+            // The batch objects
+            var batchRequestContent = new BatchRequestContent();
+            int currentBatchStep = 1;
+            int iUsers = 0;
+
+            try
+            {
+                // Get all users
+                var users = await graphClient.Users
+                    .Request()
+                    .Select(e => new
+                    {
+                        e.Id,
+                        e.DisplayName
+                    })
+                    .GetAsync();
+
+                // Iterate over all the users in the directory
+                var pageIterator = PageIterator<User>
+                    .CreatePageIterator(
+                        graphClient,
+                        users,
+                        // Callback executed for each user in the collection
+                        (user) =>
+                        {
+                            // Delete only test users
+                            if (!user.DisplayName.StartsWith(TEST_USER_PREFIX))
+                                return true;
+                            
+                            // Number of delete users
+                            iUsers += 1;
+
+                            // Set the MS Graph API user URL
+                            var requestUrl = graphClient
+                            .Users[user.Id]
+                            .Request().RequestUrl;
+
+                            // Create a HTTP delete request
+                            var request = new HttpRequestMessage(HttpMethod.Delete, requestUrl);
+                            var requestStep = new BatchRequestStep(currentBatchStep.ToString(), request, null);
+
+                            // Add the step to the collection
+                            batchRequestContent.AddBatchRequestStep(requestStep);
+
+                            // On the last item of the users' collection run the batch command
+                            if (currentBatchStep % BATCH_SIZE == 0)
+                            {
+                                Console.WriteLine($"{DateTime.Now.ToLongDateString()}, {DateTime.Now.ToLongTimeString()} users: {iUsers}");
+                                graphClient.Batch.Request().PostAsync(batchRequestContent).GetAwaiter().GetResult();
+
+                                // Empty the batch collection
+                                batchRequestContent = new BatchRequestContent();
+                                currentBatchStep = 1;
+                                return true;
+                            }
+
+                            currentBatchStep++;
+
+                            return true;
+                        },
+                        // Used to configure subsequent page requests
+                        (req) =>
+                        {
+                            Console.WriteLine($"Reading next page of users...");
+                            return req;
+                        }
+                    );
+
+                await pageIterator.IterateAsync();
+
+                // Delete the remaining items
+                if (batchRequestContent.BatchRequestSteps.Count > 0)
+                {
+                    Console.WriteLine($"{DateTime.Now.ToLongDateString()}, {DateTime.Now.ToLongTimeString()} users: {iUsers}");
+                    graphClient.Batch.Request().PostAsync(batchRequestContent).GetAwaiter().GetResult();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex.Message);
+                Console.ResetColor();
+            }
+        }
+
 
         public static async Task GetUserById(GraphServiceClient graphClient)
         {
