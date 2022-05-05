@@ -63,13 +63,9 @@ namespace ciam_cli_tools.Services
                     // you must get the HttpRequestMessage and convert to a POST
                     var jsonEvent = graphClient.HttpProvider.Serializer.SerializeAsJsonContent(user);
 
-                    var addUserRequest = graphClient.Users.Request().GetHttpRequestMessage();
+                    HttpRequestMessage addUserRequest = graphClient.Users.Request().GetHttpRequestMessage();
                     addUserRequest.Method = HttpMethod.Post;
                     addUserRequest.Content = jsonEvent;
-
-                    // Add the event to the batch operations
-                    batchRequestContent.AddBatchRequestStep(addUserRequest);
-
 
                     if (batchRequestContent.BatchRequestSteps.Count >= BATCH_SIZE)
                     {
@@ -79,9 +75,13 @@ namespace ciam_cli_tools.Services
                         // Run sent the batch requests
                         var returnedResponse = await graphClient.Batch.Request().PostAsync(batchRequestContent);
 
-                        // Empty the batch collection
+                        // Dispose the HTTP request and empty the batch collection
+                        foreach (var step in batchRequestContent.BatchRequestSteps) ((BatchRequestStep)step.Value).Request.Dispose();
                         batchRequestContent = new BatchRequestContent();
                     }
+
+                    // Add the event to the batch operations
+                    batchRequestContent.AddBatchRequestStep(addUserRequest);
 
                     // Console.WriteLine($"User '{user.DisplayName}' successfully created.");
                 }

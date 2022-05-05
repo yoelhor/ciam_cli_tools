@@ -18,7 +18,7 @@ var scopes = new[] { "https://graph.microsoft.com/.default" };
 var clientSecretCredential = new ClientSecretCredential(settings.TenantName, settings.AppId, settings.ClientSecret);
 var graphClient = new GraphServiceClient(clientSecretCredential, scopes);
 
-await UserService.CreateTestUsers(graphClient, settings, 1, 20000);
+await UserService.CreateTestUsers(graphClient, settings, 1000000, 2000000);
 //await UserService.CleanUpTestUsers(graphClient);
 
 // See https://aka.ms/new-console-template for more information
