@@ -10,8 +10,15 @@ namespace ciam_cli_tools.Services
         const string TEST_USER_SUFFIX = "test.com";
         const int BATCH_SIZE = 20;
 
-        public static async Task CreateTestUsers(GraphServiceClient graphClient, AppSettings appSettings, int from = 1, int to = 1000)
+        public static async Task CreateTestUsers(GraphServiceClient graphClient, AppSettings appSettings)
         {
+
+            Console.Write("Enter the from value: ");
+            int from = int.Parse(Console.ReadLine()!);
+
+            Console.Write("Enter the to value: ");
+            int to = int.Parse(Console.ReadLine()!);
+
 
             Console.WriteLine("Starting create test users operation...");
             DateTime startTime = DateTime.Now;
