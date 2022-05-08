@@ -8,6 +8,7 @@ namespace ciam_cli_tools.Services
     {
         const string TEST_USER_PREFIX = "CIAM_";
         const string TEST_USER_SUFFIX = "test.com";
+        const string TIME_FORMAT = "{0:D2},{1:D2}:{2:D2}:{3:D2}";
         const int BATCH_SIZE = 20;
 
         public static async Task CreateTestUsers(GraphServiceClient graphClient, AppSettings appSettings)
@@ -77,7 +78,7 @@ namespace ciam_cli_tools.Services
                     if (batchRequestContent.BatchRequestSteps.Count >= BATCH_SIZE)
                     {
                         var d = DateTime.Now - startTime;
-                        Console.WriteLine($"{string.Format("{0},{1}:{2}:{3}", d.Days, d.Hours, d.Minutes, d.Seconds)} users: {i}");
+                        Console.WriteLine($"{string.Format(TIME_FORMAT, d.Days, d.Hours, d.Minutes, d.Seconds)} users: {i}");
 
                         // Run sent the batch requests
                         var returnedResponse = await graphClient.Batch.Request().PostAsync(batchRequestContent);
@@ -94,9 +95,7 @@ namespace ciam_cli_tools.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine(ex.Message);
-                    Console.ResetColor();
                 }
             }
         }
@@ -154,7 +153,7 @@ namespace ciam_cli_tools.Services
                             if (batchRequestContent.BatchRequestSteps.Count >= BATCH_SIZE)
                             {
                                 var d = DateTime.Now - startTime;
-                                Console.WriteLine($"{string.Format("{0},{1}:{2}:{3}", d.Days, d.Hours, d.Minutes, d.Seconds)} users: {iUsers}");
+                                Console.WriteLine($"{string.Format(TIME_FORMAT, d.Days, d.Hours, d.Minutes, d.Seconds)} users: {iUsers}");
                                 graphClient.Batch.Request().PostAsync(batchRequestContent).GetAwaiter().GetResult();
 
                                 // Empty the batch collection
@@ -186,9 +185,7 @@ namespace ciam_cli_tools.Services
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
-                Console.ResetColor();
             }
         }
 
@@ -224,14 +221,14 @@ namespace ciam_cli_tools.Services
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
-                Console.ResetColor();
             }
         }
         public static async Task ListUsers(GraphServiceClient graphClient)
         {
             Console.WriteLine("Getting list of users...");
+            DateTime startTime = DateTime.Now;
+            Dictionary<string, string> usersCollection = new Dictionary<string, string>();
 
             try
             {
@@ -241,9 +238,8 @@ namespace ciam_cli_tools.Services
                     .Select(e => new
                     {
                         e.DisplayName,
-                        e.Id,
-                        e.Identities
-                    })
+                        e.Id
+                    }).OrderBy("DisplayName")
                     .GetAsync();
 
                 // Iterate over all the users in the directory
@@ -254,13 +250,19 @@ namespace ciam_cli_tools.Services
                         // Callback executed for each user in the collection
                         (user) =>
                         {
-                            Console.WriteLine(JsonSerializer.Serialize(user));
+                            usersCollection.Add(user.DisplayName, user.Id);
                             return true;
                         },
                         // Used to configure subsequent page requests
                         (req) =>
                         {
-                            Console.WriteLine($"Reading next page of users...");
+                            var d = DateTime.Now - startTime;
+                            Console.WriteLine($"{string.Format(TIME_FORMAT, d.Days, d.Hours, d.Minutes, d.Seconds)} users: {usersCollection.Count}");
+
+                            // Set a variable to the Documents path.
+                            string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "users.json");
+                            System.IO.File.WriteAllTextAsync(docPath, JsonSerializer.Serialize(usersCollection));
+
                             return req;
                         }
                     );
@@ -269,9 +271,7 @@ namespace ciam_cli_tools.Services
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
-                Console.ResetColor();
             }
         }
         //</ms_docref_get_list_of_user_accounts>
@@ -321,9 +321,7 @@ namespace ciam_cli_tools.Services
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
-                Console.ResetColor();
             }
         }
 
@@ -355,9 +353,7 @@ namespace ciam_cli_tools.Services
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
-                Console.ResetColor();
             }
         }
 
@@ -379,9 +375,7 @@ namespace ciam_cli_tools.Services
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
-                Console.ResetColor();
             }
         }
 
