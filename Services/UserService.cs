@@ -19,6 +19,7 @@ namespace ciam_cli_tools.Services
 
             Console.Write("Enter the to value: ");
             int to = int.Parse(Console.ReadLine()!);
+            int count =0;
 
 
             Console.WriteLine("Starting create test users operation...");
@@ -31,6 +32,8 @@ namespace ciam_cli_tools.Services
 
             for (int i = from; i < to; i++)
             {
+                count ++;
+
                 // 1,000,000
                 string ID = TEST_USER_PREFIX + i.ToString().PadLeft(7, '0');
 
@@ -78,7 +81,7 @@ namespace ciam_cli_tools.Services
                     if (batchRequestContent.BatchRequestSteps.Count >= BATCH_SIZE)
                     {
                         var d = DateTime.Now - startTime;
-                        Console.WriteLine($"{string.Format(TIME_FORMAT, d.Days, d.Hours, d.Minutes, d.Seconds)} users: {i}");
+                        Console.WriteLine($"{string.Format(TIME_FORMAT, d.Days, d.Hours, d.Minutes, d.Seconds)}, count: {count}, user: {ID}");
 
                         // Run sent the batch requests
                         var returnedResponse = await graphClient.Batch.Request().PostAsync(batchRequestContent);
