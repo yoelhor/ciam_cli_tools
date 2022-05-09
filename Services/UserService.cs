@@ -100,7 +100,7 @@ namespace ciam_cli_tools.Services
                     users.Add(user);
 
                     if (addMissingUsers)
-                    { 
+                    {
                         Console.WriteLine($"Adding missing {ID} user");
                     }
 
@@ -298,9 +298,15 @@ namespace ciam_cli_tools.Services
                             Console.WriteLine($"{string.Format(TIME_FORMAT, d.Days, d.Hours, d.Minutes, d.Seconds)} users: {usersCollection.Count}");
 
                             // Set a variable to the Documents path.
-                            string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "users.json");
+                            string filePrefix = "0";
+                            if (usersCollection.Count >= 1000000)
+                            {
+                                filePrefix = usersCollection.Count.ToString()[0].ToString();
+                            }
+
+                            string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"users_{filePrefix}.json");
                             System.IO.File.WriteAllTextAsync(docPath, JsonSerializer.Serialize(usersCollection));
-                            
+
                             Thread.Sleep(200);
 
                             return req;
