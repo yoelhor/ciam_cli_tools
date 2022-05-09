@@ -18,10 +18,7 @@ var scopes = new[] { "https://graph.microsoft.com/.default" };
 var clientSecretCredential = new ClientSecretCredential(settings.TenantName, settings.AppId, settings.ClientSecret);
 var graphClient = new GraphServiceClient(clientSecretCredential, scopes);
 
-await UserService.CreateTestUsers(graphClient, settings, true);
-
 PrintCommands();
-
 
 try
 {
