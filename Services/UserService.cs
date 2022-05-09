@@ -11,7 +11,7 @@ namespace ciam_cli_tools.Services
         const string TIME_FORMAT = "{0:D2},{1:D2}:{2:D2}:{3:D2}";
         const int BATCH_SIZE = 20;
 
-        public static async Task CreateTestUsers(GraphServiceClient graphClient, AppSettings appSettings)
+        public static async Task CreateTestUsers(GraphServiceClient graphClient, AppSettings appSettings, bool addMissingUsers)
         {
 
             Console.Write("Enter the from value: ");
@@ -19,11 +19,36 @@ namespace ciam_cli_tools.Services
 
             Console.Write("Enter the to value: ");
             int to = int.Parse(Console.ReadLine()!);
-            int count =0;
+            int count = 0;
 
 
             Console.WriteLine("Starting create test users operation...");
             DateTime startTime = DateTime.Now;
+            Dictionary<string, string> existingUsers = new Dictionary<string, string>();
+
+            // Add the missing users
+            if (addMissingUsers)
+            {
+                // Set a variable to the Documents path.
+                string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "users.json");
+
+                if (!System.IO.File.Exists(docPath))
+                {
+                    Console.WriteLine("Can't find the '{docPath}' file.");
+                }
+
+                string usersFile = System.IO.File.ReadAllText(docPath);
+
+                existingUsers = JsonSerializer.Deserialize<Dictionary<string, string>>(usersFile);
+
+                if (existingUsers == null)
+                {
+                    Console.WriteLine("Can't deserialize users");
+                    return;
+                }
+
+                Console.WriteLine($"There are {existingUsers.Count} in the directory");
+            }
 
             List<User> users = new List<User>();
 
@@ -32,10 +57,16 @@ namespace ciam_cli_tools.Services
 
             for (int i = from; i < to; i++)
             {
-                count ++;
-
                 // 1,000,000
                 string ID = TEST_USER_PREFIX + i.ToString().PadLeft(7, '0');
+
+                if (addMissingUsers)
+                {
+                    if (existingUsers.ContainsKey(ID))
+                        continue;
+                }
+
+                count++;
 
                 try
                 {
@@ -68,6 +99,10 @@ namespace ciam_cli_tools.Services
 
                     users.Add(user);
 
+                    if (addMissingUsers)
+                    { 
+                        Console.WriteLine($"Adding missing {ID} user");
+                    }
 
                     // POST requests are handled a bit differently
                     // The SDK request builders generate GET requests, so

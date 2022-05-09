@@ -18,6 +18,8 @@ var scopes = new[] { "https://graph.microsoft.com/.default" };
 var clientSecretCredential = new ClientSecretCredential(settings.TenantName, settings.AppId, settings.ClientSecret);
 var graphClient = new GraphServiceClient(clientSecretCredential, scopes);
 
+await UserService.CreateTestUsers(graphClient, settings, true);
+
 PrintCommands();
 
 
@@ -33,7 +35,10 @@ try
                 await UserService.ListUsers(graphClient);
                 break;
             case "2":
-                await UserService.CreateTestUsers(graphClient, settings);
+                await UserService.CreateTestUsers(graphClient, settings, false);
+                break;
+            case "3":
+                await UserService.CreateTestUsers(graphClient, settings, true);
                 break;
             case "help":
                 PrintCommands();
@@ -53,11 +58,6 @@ catch (Exception ex)
     Console.WriteLine($"An error occurred: {ex}");
 }
 
-
-//await UserService.CreateTestUsers(graphClient, settings);
-//await UserService.CleanUpTestUsers(graphClient);
-
-
 // See https://aka.ms/new-console-template for more information
 Console.WriteLine("Hello, World!");
 
@@ -70,6 +70,7 @@ static void PrintCommands()
     Console.WriteLine("====================");
     Console.WriteLine("[1]      Get all users");
     Console.WriteLine("[2]      Create test users");
+    Console.WriteLine("[3]      Add missing test users");
     Console.WriteLine("[help]   Show available commands");
     Console.WriteLine("[exit]   Exit the program");
     Console.WriteLine("-------------------------");
