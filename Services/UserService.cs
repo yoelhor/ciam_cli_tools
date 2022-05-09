@@ -268,6 +268,8 @@ namespace ciam_cli_tools.Services
             DateTime startTime = DateTime.Now;
             Dictionary<string, string> usersCollection = new Dictionary<string, string>();
 
+            int page = 0;
+
             try
             {
                 // Get all users
@@ -289,6 +291,7 @@ namespace ciam_cli_tools.Services
                         (user) =>
                         {
                             usersCollection.Add(user.DisplayName, user.Id);
+
                             return true;
                         },
                         // Used to configure subsequent page requests
@@ -304,8 +307,14 @@ namespace ciam_cli_tools.Services
                                 filePrefix = usersCollection.Count.ToString()[0].ToString();
                             }
 
-                            string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"users_{filePrefix}.json");
-                            System.IO.File.WriteAllTextAsync(docPath, JsonSerializer.Serialize(usersCollection));
+                            page++;
+
+                            if (page >= 100)
+                            {
+                                page = 0;
+                                string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"users_{filePrefix}.json");
+                                System.IO.File.WriteAllTextAsync(docPath, JsonSerializer.Serialize(usersCollection));
+                            }
 
                             Thread.Sleep(200);
 
