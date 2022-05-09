@@ -300,6 +300,8 @@ namespace ciam_cli_tools.Services
                             // Set a variable to the Documents path.
                             string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "users.json");
                             System.IO.File.WriteAllTextAsync(docPath, JsonSerializer.Serialize(usersCollection));
+                            
+                            Thread.Sleep(500);
 
                             return req;
                         }
