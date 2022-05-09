@@ -312,7 +312,7 @@ namespace ciam_cli_tools.Services
                             if (page >= 50)
                             {
                                 page = 0;
-                                string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"users_{filePrefix}.json");
+                                string docPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"users_all.json");
                                 System.IO.File.WriteAllTextAsync(docPath, JsonSerializer.Serialize(usersCollection));
                             }
 
