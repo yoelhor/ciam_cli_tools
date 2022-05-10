@@ -384,6 +384,93 @@ namespace ciam_cli_tools.Services
             }
         }
 
+        public static async Task AddTestUsersToSecurityGroups(GraphServiceClient graphClient)
+        {
+            Console.WriteLine("Enter the group ID. Use comma delimiter for multiple groups. ");
+            string groupsString = Console.ReadLine()!;
+            string[] groups = groupsString.Split(",");
+
+            DateTime startTime = DateTime.Now;
+            int count = 0;
+
+            List<string> usersToAdd = new List<string>(); ;
+
+            try
+            {
+                // Get all users
+                var users = await graphClient.Users
+                    .Request()
+                    .Select(e => new
+                    {
+                        e.DisplayName,
+                        e.Id
+                    }).OrderBy("DisplayName")
+                    .GetAsync();
+
+                // Iterate over all the users in the directory
+                var pageIterator = PageIterator<User>
+                    .CreatePageIterator(
+                        graphClient,
+                        users,
+                        // Callback executed for each user in the collection
+                        (user) =>
+                        {
+                            // Only test users
+                            if (!user.DisplayName.StartsWith(TEST_USER_PREFIX))
+                                return true;
+
+                            count++;
+                            usersToAdd.Add($"https://graph.microsoft.com/v1.0/directoryObjects/{user.Id}");
+
+                            if (usersToAdd.Count == 20)
+                            {
+                                var d = DateTime.Now - startTime;
+                                Console.WriteLine($"{string.Format(TIME_FORMAT, d.Days, d.Hours, d.Minutes, d.Seconds)} users: {count}");
+
+                                foreach (var group in groups)
+                                {
+                                    AddTestUsersToSecurityGroup(graphClient, group, usersToAdd);
+                                }
+
+                                usersToAdd = new List<string>(); 
+
+                                Thread.Sleep(1000);
+                            }
+
+
+                            return true;
+                        },
+                        // Used to configure subsequent page requests
+                        (req) =>
+                        {
+                            return req;
+                        }
+                    );
+
+                await pageIterator.IterateAsync();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        private static async Task AddTestUsersToSecurityGroup(GraphServiceClient graphClient, string groupID, List<string> usersToAdd)
+        {
+            var group = new Group
+            {
+                AdditionalData = new Dictionary<string, object>()
+                {
+                    {"members@odata.bind", usersToAdd}
+                }
+            };
+
+            await graphClient.Groups[groupID]
+                .Request()
+                .UpdateAsync(group);
+        }
+
         public static async Task GetUserBySignInName(AppSettings config, GraphServiceClient graphClient)
         {
             Console.Write("Enter user sign-in name (username or email address): ");

@@ -1,4 +1,5 @@
-﻿using Azure.Identity;
+﻿using System.Reflection;
+using Azure.Identity;
 using ciam_cli_tools.Models;
 using ciam_cli_tools.Services;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +38,9 @@ try
             case "3":
                 await UserService.CreateTestUsers(graphClient, settings, true);
                 break;
+            case "4":
+                await UserService.AddTestUsersToSecurityGroups(graphClient);
+                break;
             case "help":
                 PrintCommands();
                 break;
@@ -61,13 +65,16 @@ Console.WriteLine("Hello, World!");
 
 static void PrintCommands()
 {
-    Console.ResetColor();
+    string Version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+    
+    Console.WriteLine($"App version: {Version}");
     Console.WriteLine();
     Console.WriteLine("Command  Description");
     Console.WriteLine("====================");
     Console.WriteLine("[1]      Get all users");
     Console.WriteLine("[2]      Create test users");
     Console.WriteLine("[3]      Add missing test users");
+    Console.WriteLine("[4]      Add users to security groups");
     Console.WriteLine("[help]   Show available commands");
     Console.WriteLine("[exit]   Exit the program");
     Console.WriteLine("-------------------------");
