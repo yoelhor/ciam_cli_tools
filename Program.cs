@@ -19,6 +19,11 @@ var scopes = new[] { "https://graph.microsoft.com/.default" };
 var clientSecretCredential = new ClientSecretCredential(settings.TenantName, settings.AppId, settings.ClientSecret);
 var graphClient = new GraphServiceClient(clientSecretCredential, scopes);
 
+
+await UserService.DeleteAllTestUsers(graphClient);
+
+return;
+
 PrintCommands();
 
 try
@@ -40,6 +45,9 @@ try
                 break;
             case "4":
                 await UserService.AddTestUsersToSecurityGroups(graphClient);
+                break;
+            case "5":
+                await UserService.DeleteAllTestUsers(graphClient);
                 break;
             case "help":
                 PrintCommands();
@@ -75,6 +83,7 @@ static void PrintCommands()
     Console.WriteLine("[2]      Create test users");
     Console.WriteLine("[3]      Add missing test users");
     Console.WriteLine("[4]      Add users to security groups");
+    Console.WriteLine("[5]      Delete all test users");
     Console.WriteLine("[help]   Show available commands");
     Console.WriteLine("[exit]   Exit the program");
     Console.WriteLine("-------------------------");

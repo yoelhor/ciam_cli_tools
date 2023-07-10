@@ -432,7 +432,7 @@ namespace ciam_cli_tools.Services
                                     AddTestUsersToSecurityGroup(graphClient, group, usersToAdd);
                                 }
 
-                                usersToAdd = new List<string>(); 
+                                usersToAdd = new List<string>();
 
                                 Thread.Sleep(1000);
                             }
@@ -518,6 +518,60 @@ namespace ciam_cli_tools.Services
                    .DeleteAsync();
 
                 Console.WriteLine($"User with object ID '{userId}' successfully deleted.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static async Task DeleteAllTestUsers(GraphServiceClient graphClient)
+        {
+            Console.WriteLine("Getting list of users...");
+            DateTime startTime = DateTime.Now;
+
+
+            try
+            {
+                // Get all users
+                var users = await graphClient.Users
+                    .Request()
+                    .Select(e => new
+                    {
+                        e.DisplayName,
+                        e.Id
+                    }).OrderBy("DisplayName")
+                    .GetAsync();
+
+                // Iterate over all the users in the directory
+                var pageIterator = PageIterator<User>
+                    .CreatePageIterator(
+                        graphClient,
+                        users,
+                        // Callback executed for each user in the collection
+                        (user) =>
+                        {
+                            // Delete user by object ID
+                            if (user.DisplayName.StartsWith("CIAM_"))
+                            {
+                                graphClient.Users[user.Id]
+                               .Request()
+                               .DeleteAsync();
+                            }
+
+                            Console.WriteLine($"{user.DisplayName} was deleted");
+
+                            return true;
+                        },
+                        // Used to configure subsequent page requests
+                        (req) =>
+                        {
+                            //Thread.Sleep(2000);
+                            return req;
+                        }
+                    );
+
+                await pageIterator.IterateAsync();
             }
             catch (Exception ex)
             {
