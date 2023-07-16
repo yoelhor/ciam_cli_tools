@@ -152,7 +152,7 @@ namespace ciam_cli_tools.Services
             {
                 // Get all users
                 var users = await graphClient.Users
-                    .Request()
+                    .Request().OrderBy("displayName")
                     .Select(e => new
                     {
                         e.Id,
@@ -171,6 +171,8 @@ namespace ciam_cli_tools.Services
                             // Delete only test users
                             if (!user.DisplayName.StartsWith(TEST_USER_PREFIX))
                                 return true;
+
+                            Console.WriteLine("Deleting " + user.DisplayName);
 
                             // Number of delete users
                             iUsers += 1;
@@ -192,11 +194,28 @@ namespace ciam_cli_tools.Services
                             {
                                 var d = DateTime.Now - startTime;
                                 Console.WriteLine($"{string.Format(TIME_FORMAT, d.Days, d.Hours, d.Minutes, d.Seconds)} users: {iUsers}");
-                                graphClient.Batch.Request().PostAsync(batchRequestContent).GetAwaiter().GetResult();
+                                var returnedResponse = graphClient.Batch.Request().PostAsync(batchRequestContent).GetAwaiter().GetResult();
+
+                                var responses = returnedResponse.GetResponsesAsync().GetAwaiter().GetResult();
+                                var responseHandler = new ResponseHandler(new Serializer());
+                                foreach (var response in responses)
+                                {
+                                    if (response.Value.IsSuccessStatusCode)
+                                    {
+                                        // var events = responseHandler.HandleResponse<ICalendarEventsCollectionPage>(response.Value);
+                                        // //...
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("ERRRRRRRRRRO");
+                                    }
+                                }
 
                                 // Empty the batch collection
                                 batchRequestContent = new BatchRequestContent();
                                 currentBatchStep = 1;
+
+                                
                                 return true;
                             }
 
@@ -207,7 +226,9 @@ namespace ciam_cli_tools.Services
                         // Used to configure subsequent page requests
                         (req) =>
                         {
-                            Console.WriteLine($"Reading next page of users...");
+                            
+                            Console.WriteLine($"Waiting and reading next page of users...");
+                            Thread.Sleep(3000);
                             return req;
                         }
                     );
@@ -524,60 +545,5 @@ namespace ciam_cli_tools.Services
                 Console.WriteLine(ex.Message);
             }
         }
-
-        public static async Task DeleteAllTestUsers(GraphServiceClient graphClient)
-        {
-            Console.WriteLine("Getting list of users...");
-            DateTime startTime = DateTime.Now;
-
-
-            try
-            {
-                // Get all users
-                var users = await graphClient.Users
-                    .Request()
-                    .Select(e => new
-                    {
-                        e.DisplayName,
-                        e.Id
-                    }).OrderBy("DisplayName")
-                    .GetAsync();
-
-                // Iterate over all the users in the directory
-                var pageIterator = PageIterator<User>
-                    .CreatePageIterator(
-                        graphClient,
-                        users,
-                        // Callback executed for each user in the collection
-                        (user) =>
-                        {
-                            // Delete user by object ID
-                            if (user.DisplayName.StartsWith("CIAM_"))
-                            {
-                                graphClient.Users[user.Id]
-                               .Request()
-                               .DeleteAsync();
-                            }
-
-                            Console.WriteLine($"{user.DisplayName} was deleted");
-
-                            return true;
-                        },
-                        // Used to configure subsequent page requests
-                        (req) =>
-                        {
-                            //Thread.Sleep(2000);
-                            return req;
-                        }
-                    );
-
-                await pageIterator.IterateAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
     }
 }
